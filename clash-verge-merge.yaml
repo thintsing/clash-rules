@@ -1,24 +1,32 @@
 # ================================================================
-# Merge Template - 重构版 (GEOSITE 优先 + 最小 Provider)
+# Merge Template - 最终优化版
 # ================================================================
 # 规则来源: https://github.com/thintsing/proxy-rules
 #
-# 架构设计:
-#   1. 用户自定义规则 (RULE-SET, 13 providers) - 小文件, 按需加载
-#   2. 内置数据库 (GEOSITE/GEOIP) - 零网络依赖, 自动更新
-#   3. 无冗余内联兜底, 无重复 ls-* providers
+# 架构设计原则:
+#   1. 必要规则 (RULE-SET, 7 providers) - 用户自定义 + GEOSITE 不覆盖
+#   2. 通用规则 (GEOSITE/GEOIP) - 内置数据库, 零网络依赖
+#   3. 零冗余 - 无内联兜底, 无重复 provider
+#
+# 已移除的 6 个 provider（被 GEOSITE 完全覆盖）:
+#   apple.txt (1717条) → GEOSITE,apple
+#   icloud.txt (82条)  → GEOSITE,apple (已包含)
+#   microsoft.txt (737条) → GEOSITE,microsoft
+#   private.txt (27条)  → GEOSITE,private
+#   reject.txt (208条)  → GEOSITE,category-ads-all
+#   cncidr.txt (5761条) → GEOIP,CN
 #
 # 规则优先级:
-#   进程匹配 → 自定义代理/直连/拦截 → 服务分类(GEOSITE) →
-#   IP段 → 中国网站(GEOSITE) → 中国IP(GEOIP) → MATCH
+#   进程匹配 → 代理/直连/拦截(自定义) → AI/Steam →
+#   服务分类(GEOSITE) → IP段 → 中国网站(GEOSITE) → 中国IP(GEOIP) → MATCH
 # ================================================================
 
 rule-providers:
-  reject:
+  applications:
     type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/reject.txt"
-    path: ./ruleset/reject.yaml
+    behavior: classical
+    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/applications.txt"
+    path: ./ruleset/applications.yaml
     interval: 86400
 
   proxy:
@@ -35,20 +43,6 @@ rule-providers:
     path: ./ruleset/direct.yaml
     interval: 86400
 
-  apple:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/apple.txt"
-    path: ./ruleset/apple.yaml
-    interval: 86400
-
-  steam:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/steam.txt"
-    path: ./ruleset/steam.yaml
-    interval: 86400
-
   ai:
     type: http
     behavior: domain
@@ -56,18 +50,11 @@ rule-providers:
     path: ./ruleset/ai.yaml
     interval: 86400
 
-  icloud:
+  steam:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/icloud.txt"
-    path: ./ruleset/icloud.yaml
-    interval: 86400
-
-  private:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/private.txt"
-    path: ./ruleset/private.yaml
+    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/steam.txt"
+    path: ./ruleset/steam.yaml
     interval: 86400
 
   lancidr:
@@ -84,60 +71,33 @@ rule-providers:
     path: ./ruleset/telegramcidr.yaml
     interval: 86400
 
-  microsoft:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/microsoft.txt"
-    path: ./ruleset/microsoft.yaml
-    interval: 86400
-
-  cncidr:
-    type: http
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/cncidr.txt"
-    path: ./ruleset/cncidr.yaml
-    interval: 86400
-
-  applications:
-    type: http
-    behavior: classical
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/applications.txt"
-    path: ./ruleset/applications.yaml
-    interval: 86400
-
 rules:
   # ──────────────────────────────────────────────────────
-  # 第1层：应用进程匹配（最高优先级）
+  # 第1层：应用进程匹配（最高优先级，无法被 GEOSITE 替代）
   # ──────────────────────────────────────────────────────
   - RULE-SET,applications,DIRECT
 
   # ──────────────────────────────────────────────────────
-  # 第2层：自定义分类（用户特有规则，优先于通用数据库）
+  # 第2层：自定义规则（用户特有，优先于通用数据库）
   # ──────────────────────────────────────────────────────
   - RULE-SET,ai,🤖 AI服务
   - RULE-SET,steam,🎮 Steam
   - RULE-SET,proxy,🌍 国外媒体
   - RULE-SET,direct,🎯 全球直连
-  - RULE-SET,reject,🛑 全球拦截
-  - RULE-SET,private,🎯 全球直连
 
   # ──────────────────────────────────────────────────────
   # 第3层：GEOSITE 内置数据库（零网络依赖，自动更新）
   # ──────────────────────────────────────────────────────
   - GEOSITE,private,🎯 全球直连
   - GEOSITE,category-ads-all,🛑 全球拦截
-  - RULE-SET,microsoft,Ⓜ️ 微软服务
-  - RULE-SET,apple,🍎 苹果服务
-  - RULE-SET,icloud,🍎 苹果服务
   - GEOSITE,apple,🍎 苹果服务
   - GEOSITE,microsoft,Ⓜ️ 微软服务
   - GEOSITE,telegram,📲 电报信息
 
   # ──────────────────────────────────────────────────────
-  # 第4层：IP 段匹配
+  # 第4层：IP 段匹配（IP-CIDR 补充 GEOSITE 的域名匹配）
   # ──────────────────────────────────────────────────────
   - RULE-SET,lancidr,🎯 全球直连
-  - RULE-SET,cncidr,🎯 全球直连
   - RULE-SET,telegramcidr,📲 电报信息
 
   # ──────────────────────────────────────────────────────
