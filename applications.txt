@@ -60,6 +60,11 @@ payload:
   - PROCESS-NAME,Hearthstone.exe,🎮 Steam
   - PROCESS-NAME,Agent.exe,🎮 Steam
 
+  # ==================== 国际 AI 服务（代理） ====================
+  - PROCESS-NAME,claude.exe,🤖 AI服务
+  - PROCESS-NAME,ChatGPT.exe,🤖 AI服务
+  - PROCESS-NAME,Codex.exe,🤖 AI服务
+
   # ==================== 系统服务 ====================
   # Tailscale（强制直连，避免被 TUN 拦截）
   - PROCESS-NAME,tailscaled.exe,DIRECT
