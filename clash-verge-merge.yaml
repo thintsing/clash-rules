@@ -1,112 +1,96 @@
 # ================================================================
-# Merge Template - 最终优化版
+# Merge Template - 优化版
 # ================================================================
-# 规则来源: https://github.com/thintsing/proxy-rules
-#
-# 架构设计原则:
-#   1. 必要规则 (RULE-SET, 7 providers) - 用户自定义 + GEOSITE 不覆盖
-#   2. 通用规则 (GEOSITE/GEOIP) - 内置数据库, 零网络依赖
-#   3. 零冗余 - 无内联兜底, 无重复 provider
-#
-# 已移除的 6 个 provider（被 GEOSITE 完全覆盖）:
-#   apple.txt (1717条) → GEOSITE,apple
-#   icloud.txt (82条)  → GEOSITE,apple (已包含)
-#   microsoft.txt (737条) → GEOSITE,microsoft
-#   private.txt (27条)  → GEOSITE,private
-#   reject.txt (208条)  → GEOSITE,category-ads-all
-#   cncidr.txt (5761条) → GEOIP,CN
-#
-# 规则优先级:
-#   进程匹配 → 代理/直连/拦截(自定义) → AI/Steam →
-#   服务分类(GEOSITE) → IP段 → 中国网站(GEOSITE) → 中国IP(GEOIP) → MATCH
+# 5 Loyalsoldier (proxy/direct/reject/applications/lancidr)
+# + 3 自定义 (AI/Steam/Direct覆盖)
+# + 8 GEOSITE
+# + 1 GEOIP + 1 MATCH
 # ================================================================
 
 rule-providers:
-  applications:
+  # ======== 用户自定义覆盖 ========
+  custom-ai:
     type: http
     behavior: classical
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/applications.txt"
-    path: ./ruleset/applications.yaml
+    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/custom-ai.txt"
+    path: ./ruleset/custom-ai.yaml
+    interval: 86400
+
+  custom-steam:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/custom-steam.txt"
+    path: ./ruleset/custom-steam.yaml
+    interval: 86400
+
+  custom-direct:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/custom-direct.txt"
+    path: ./ruleset/custom-direct.yaml
+    interval: 86400
+
+  # ======== Loyalsoldier 核心规则 ========
+  reject:
+    type: http
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt"
+    path: ./ruleset/reject.yaml
     interval: 86400
 
   proxy:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/proxy.txt"
+    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt"
     path: ./ruleset/proxy.yaml
     interval: 86400
 
   direct:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/direct.txt"
+    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt"
     path: ./ruleset/direct.yaml
     interval: 86400
 
-  ai:
+  applications:
     type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/ai.txt"
-    path: ./ruleset/ai.yaml
-    interval: 86400
-
-  steam:
-    type: http
-    behavior: domain
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/steam.txt"
-    path: ./ruleset/steam.yaml
+    behavior: classical
+    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/applications.txt"
+    path: ./ruleset/applications.yaml
     interval: 86400
 
   lancidr:
     type: http
     behavior: ipcidr
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/lancidr.txt"
+    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt"
     path: ./ruleset/lancidr.yaml
     interval: 86400
 
-  telegramcidr:
-    type: http
-    behavior: ipcidr
-    url: "https://raw.githubusercontent.com/thintsing/proxy-rules/main/telegramcidr.txt"
-    path: ./ruleset/telegramcidr.yaml
-    interval: 86400
-
 rules:
-  # ──────────────────────────────────────────────────────
-  # 第1层：应用进程匹配（最高优先级，无法被 GEOSITE 替代）
-  # ──────────────────────────────────────────────────────
-  - RULE-SET,applications,DIRECT
+  # ── 第1层：自定义覆盖 ──
+  - RULE-SET,custom-ai,🤖 AI服务
+  - RULE-SET,custom-steam,🎮 Steam
+  - RULE-SET,custom-direct,🎯 全球直连
 
-  # ──────────────────────────────────────────────────────
-  # 第2层：自定义规则（用户特有，优先于通用数据库）
-  # ──────────────────────────────────────────────────────
-  - RULE-SET,ai,🤖 AI服务
-  - RULE-SET,steam,🎮 Steam
+  # ── 第2层：Loyalsoldier 核心 ──
+  - RULE-SET,applications,🎯 全球直连
+  - RULE-SET,reject,🛑 全球拦截
   - RULE-SET,proxy,🌍 国外媒体
   - RULE-SET,direct,🎯 全球直连
+  - RULE-SET,lancidr,🎯 全球直连
 
-  # ──────────────────────────────────────────────────────
-  # 第3层：GEOSITE 内置数据库（零网络依赖，自动更新）
-  # ──────────────────────────────────────────────────────
-  - GEOSITE,private,🎯 全球直连
-  - GEOSITE,category-ads-all,🛑 全球拦截
+  # ── 第3层：GEOSITE 补充 ──
   - GEOSITE,apple,🍎 苹果服务
+  - GEOSITE,google,🌍 国外媒体
   - GEOSITE,microsoft,Ⓜ️ 微软服务
   - GEOSITE,telegram,📲 电报信息
-
-  # ──────────────────────────────────────────────────────
-  # 第4层：IP 段匹配（IP-CIDR 补充 GEOSITE 的域名匹配）
-  # ──────────────────────────────────────────────────────
-  - RULE-SET,lancidr,🎯 全球直连
-  - RULE-SET,telegramcidr,📲 电报信息
-
-  # ──────────────────────────────────────────────────────
-  # 第5层：国内网站/IP 兜底
-  # ──────────────────────────────────────────────────────
+  - GEOSITE,private,🎯 全球直连
+  - GEOSITE,category-ads-all,🛑 全球拦截
   - GEOSITE,geolocation-cn,🎯 全球直连
+  - GEOSITE,geolocation-!cn,🌍 国外媒体
+
+  # ── 第4层：中国 IP 兜底 ──
   - GEOIP,CN,🎯 全球直连,no-resolve
 
-  # ──────────────────────────────────────────────────────
-  # 第6层：最终兜底
-  # ──────────────────────────────────────────────────────
+  # ── 第5层：最终兜底 ──
   - MATCH,🐟 漏网之鱼
