@@ -1,7 +1,7 @@
 # ================================================================
 # Merge Template - 优化版
 # ================================================================
-# 4 Loyalsoldier (proxy/direct/reject/applications)
+# 5 Loyalsoldier (proxy/direct/reject/applications/lancidr)
 # + 3 自定义 (AI/Steam/Direct覆盖)
 # + 8 GEOSITE
 # + 1 GEOIP + 1 MATCH
@@ -59,6 +59,13 @@ rule-providers:
     path: ./ruleset/applications.yaml
     interval: 86400
 
+  lancidr:
+    type: http
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt"
+    path: ./ruleset/lancidr.yaml
+    interval: 86400
+
 rules:
   # ── 第1层：自定义覆盖 ──
   - RULE-SET,custom-ai,🤖 AI服务
@@ -71,15 +78,8 @@ rules:
   - RULE-SET,proxy,🌍 国外媒体
   - RULE-SET,direct,🎯 全球直连
 
-  # ── 第3层：私有 IP 段（直连，GEOSITE 不覆盖 IP）──
-  - IP-CIDR,127.0.0.0/8,🎯 全球直连,no-resolve
-  - IP-CIDR,10.0.0.0/8,🎯 全球直连,no-resolve
-  - IP-CIDR,172.16.0.0/12,🎯 全球直连,no-resolve
-  - IP-CIDR,192.168.0.0/16,🎯 全球直连,no-resolve
-  - IP-CIDR,100.64.0.0/10,🎯 全球直连,no-resolve
-  - IP-CIDR,169.254.0.0/16,🎯 全球直连,no-resolve
-  - IP-CIDR,224.0.0.0/4,🎯 全球直连,no-resolve
-  - IP-CIDR,240.0.0.0/4,🎯 全球直连,no-resolve
+  # ── 第3层：私有 IP 段（LAN CIDR）──
+  - RULE-SET,lancidr,🎯 全球直连
 
   # ── 第4层：GEOSITE 补充 ──
   - GEOSITE,apple,🍎 苹果服务
