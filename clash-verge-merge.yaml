@@ -71,7 +71,17 @@ rules:
   - RULE-SET,proxy,🌍 国外媒体
   - RULE-SET,direct,🎯 全球直连
 
-  # ── 第3层：GEOSITE 补充 ──
+  # ── 第3层：私有 IP 段（直连，GEOSITE 不覆盖 IP）──
+  - IP-CIDR,127.0.0.0/8,🎯 全球直连,no-resolve
+  - IP-CIDR,10.0.0.0/8,🎯 全球直连,no-resolve
+  - IP-CIDR,172.16.0.0/12,🎯 全球直连,no-resolve
+  - IP-CIDR,192.168.0.0/16,🎯 全球直连,no-resolve
+  - IP-CIDR,100.64.0.0/10,🎯 全球直连,no-resolve
+  - IP-CIDR,169.254.0.0/16,🎯 全球直连,no-resolve
+  - IP-CIDR,224.0.0.0/4,🎯 全球直连,no-resolve
+  - IP-CIDR,240.0.0.0/4,🎯 全球直连,no-resolve
+
+  # ── 第4层：GEOSITE 补充 ──
   - GEOSITE,apple,🍎 苹果服务
   - GEOSITE,google,🌍 国外媒体
   - GEOSITE,microsoft,Ⓜ️ 微软服务
@@ -81,8 +91,8 @@ rules:
   - GEOSITE,geolocation-cn,🎯 全球直连
   - GEOSITE,geolocation-!cn,🌍 国外媒体
 
-  # ── 第4层：中国 IP 兜底 ──
+  # ── 第5层：中国 IP 兜底 ──
   - GEOIP,CN,🎯 全球直连,no-resolve
 
-  # ── 第5层：最终兜底 ──
+  # ── 第6层：最终兜底 ──
   - MATCH,🐟 漏网之鱼
